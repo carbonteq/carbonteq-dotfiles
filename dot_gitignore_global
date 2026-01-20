@@ -1,0 +1,16 @@
+# OS Generated
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Language/Env Environments
+.venv/
+node_modules/
+__pycache__/
+.env.local
+.terraform/

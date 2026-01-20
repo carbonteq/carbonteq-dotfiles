@@ -1,0 +1,84 @@
+{{- if eq .chezmoi.os "linux" -}}
+#!/bin/bash
+
+# --- HELPER FUNCTIONS ---
+# Checks if an apt package is installed
+is_apt_installed() { dpkg -s "$1" >/dev/null 2>&1; }
+
+# Checks if a command exists in the PATH
+command_exists() { command -v "$1" >/dev/null 2>&1; }
+
+# Checks if a snap is installed
+is_snap_installed() { snap list "$1" >/dev/null 2>&1; }
+
+echo "🚀 Starting robust system provisioning..."
+
+# 1. CLEAN UP PREVIOUS ERRORS (Just in case)
+sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+
+# 2. CONFIGURE REPOS (Only if missing)
+# ---------------------------------------------------------
+# VS Code
+if [ ! -f /etc/apt/sources.list.d/vscode.list ]; then
+    echo "🔗 Adding VS Code repo..."
+    wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /usr/share/keyrings/microsoft.gpg > /dev/null
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | sudo tee /etc/apt/sources.list.d/vscode.list
+fi
+
+# Google Chrome
+if [ ! -f /etc/apt/sources.list.d/google-chrome.list ]; then
+    echo "🔗 Adding Chrome repo..."
+    wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor --yes -o /usr/share/keyrings/google-chrome.gpg
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+fi
+
+# 3. APT PACKAGES (Skips if already installed)
+# ---------------------------------------------------------
+packages=(code google-chrome-stable build-essential python3-pip ripgrep fzf jq zsh curl)
+to_install=()
+
+for pkg in "${packages[@]}"; do
+    if ! is_apt_installed "$pkg"; then
+        to_install+=("$pkg")
+    fi
+done
+
+if [ ${#to_install[@]} -ne 0 ]; then
+    echo "📦 Installing missing packages: ${to_install[*]}"
+    sudo apt-get update && sudo apt-get install -y "${to_install[@]}"
+else
+    echo "✅ All apt packages already installed. Skipping."
+fi
+
+# 4. SNAP PACKAGES (Spotify & Mattermost)
+# ---------------------------------------------------------
+for snp in mattermost-desktop; do
+    if ! is_snap_installed "$snp"; then
+        echo "📸 Installing snap: $snp"
+        sudo snap install "$snp"
+    else
+        echo "✅ Snap $snp already installed."
+    fi
+done
+
+# 5. CURSOR AI (Check binary existence)
+# ---------------------------------------------------------
+if ! command_exists cursor; then
+    echo "🖱️ Installing Cursor AI..."
+    mkdir -p "$HOME/.local/bin"
+    curl -L "https://downloader.cursor.sh/linux/appImage/x64" -o "$HOME/.local/bin/cursor.appimage"
+    chmod +x "$HOME/.local/bin/cursor.appimage"
+    ln -sf "$HOME/.local/bin/cursor.appimage" "$HOME/.local/bin/cursor"
+else
+    echo "✅ Cursor AI already installed."
+fi
+
+# 6. ASDF / RUNTIMES
+# ---------------------------------------------------------
+if [ ! -d "$HOME/.asdf" ]; then
+    echo "⚙️ Installing asdf..."
+    git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.0
+fi
+
+echo "✨ System is up to date!"
+{{- end -}}

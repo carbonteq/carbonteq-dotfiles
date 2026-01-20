@@ -1,3 +1,55 @@
-fD
-:wq
- "$HOME/snap/code/205/.local/share/../bin/env"
+# Standardized Org Zsh Configuration
+# Maintained by {{ .chezmoi.sourceDir | trimPrefix "$HOME/.local/share/chezmoi" }}
+
+# History settings for auditability and sharing
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+setopt APPEND_HISTORY
+setopt SHARE_HISTORY  # Team-wide history across sessions
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+
+# Enable plugins (assume Oh My Zsh or antigen installed via bootstrap)
+plugins=(git zsh-autosuggestions zsh-syntax-highlighting)  # Minimal, performant set
+source $ZSH/oh-my-zsh.sh  # Or equivalent
+
+# Environment variables - standardize tools
+export EDITOR='nvim'  # Or vim/code
+export PATH="$HOME/.local/bin:$PATH"  # Local bins first
+export LANG=en_US.UTF-8
+
+# Org-specific vars (template for secrets)
+export ORG_NAME="{{ .org_name | default "YourOrg" }}"  # e.g., via chezmoi
+{{ if .use_secrets }}export AWS_PROFILE="{{ .aws_profile }}"{{ end }}
+
+# Git aliases for team workflows
+alias g='git'
+alias ga='git add'
+alias gc='git commit -v'
+alias gp='git push'
+alias gl='git pull --rebase'
+alias gst='git status'
+alias gd='git diff'
+alias glog='git log --oneline --graph --decorate'
+
+# General productivity aliases
+alias ls='ls -G'  # Colorized (macOS)
+alias ll='ls -lAh'
+alias grep='grep --color=auto'
+alias ..='cd ..'
+alias ...='cd ../..'
+
+# DevOps shortcuts (common in platform teams)
+alias k='kubectl'
+alias tf='terraform'
+alias docker-clean='docker system prune -f'
+
+# Direnv hook for project envs
+eval "$(direnv hook zsh)"  # Automates per-project vars
+
+# Prompt: Clean, shows git status + exit code
+PROMPT='%F{green}%n@%m%f %F{blue}%~%f %F{red}$(git_prompt_info)%f %F{white}❯%f '
+
+# Source local overrides (flexibility layer)
+[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local

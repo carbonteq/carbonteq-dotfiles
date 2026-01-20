@@ -1,0 +1,49 @@
+# .gitconfig - Organizational Base
+[user]
+    # Do NOT set name/email here. 
+    # Use .gitconfig.local for personal identity.
+
+[core]
+    editor = code --wait
+    autocrlf = input
+    excludesfile = ~/.gitignore_global
+    ignorecase = false
+
+[pull]
+    # Ensures clean history; highly recommended for teams
+    rebase = true
+
+[push]
+    # Pushes the current branch to its upstream
+    default = current
+    autoSetupRemote = true
+
+[init]
+    defaultBranch = main
+
+[color]
+    ui = auto
+
+[alias]
+    # Standard productivity shortcuts
+    st = status
+    co = checkout
+    br = branch
+    cp = cherry-pick
+    up = pull --rebase --autostash
+    last = log -1 HEAD
+    # A beautiful graph view for PR reviews
+    lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+
+[diff]
+    tool = vscode
+    renames = copies
+
+[merge]
+    tool = vscode
+    conflictstyle = zdiff3
+
+[include]
+    # IMPORTANT: This allows developers to have their own 
+    # name/email and private aliases without committing them to the org repo.
+	path = ~/.gitconfig.local
