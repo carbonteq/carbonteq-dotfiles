@@ -1,6 +1,7 @@
 # Standardized Org Zsh Configuration
 # Maintained by {{ .chezmoi.sourceDir | trimPrefix "$HOME/.local/share/chezmoi" }}
 
+
 # History settings for auditability and sharing
 HISTFILE=~/.zsh_history
 HISTSIZE=10000
