@@ -1,0 +1,193 @@
+{{ if (or (eq .chezmoi.os "linux") (eq .chezmoi.os "darwin")) -}}
+#!/usr/bin/env bash
+
+# Robust Error Handling
+set -Eeuo pipefail
+trap 'echo -e "\n❌ ERROR: Command failed at line $LINENO. Exiting..."; exit 1' ERR
+
+# ---------- HELPER FUNCTIONS ----------
+log()   { echo -e "\n🔹 \033[1;34m$1\033[0m"; }
+ok()    { echo -e "✅ \033[1;32m$1\033[0m"; }
+warn()  { echo -e "⚠️  \033[1;33m$1\033[0m"; }
+
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# ==============================================================================
+#                               MAC OS INSTALLATION
+# ==============================================================================
+{{ if eq .chezmoi.os "darwin" -}}
+log "Starting macOS provisioning..."
+
+# 1. Install Homebrew if missing
+if ! command_exists brew; then
+    log "Installing Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+fi
+
+# 2. Install Desktop Apps & Core CLI via Homebrew
+log "Installing Apps and Tools via Brew..."
+brew install --cask visual-studio-code docker mattermost cursor espanso
+brew install fzf jq htop tree tmux git wget coreutils fish nushell ncspot
+
+# 3. Install Mise
+if ! command_exists mise; then
+    brew install mise
+fi
+{{ end -}}
+
+# ==============================================================================
+#                               LINUX INSTALLATION (UNTOUCHED)
+# ==============================================================================
+{{ if eq .chezmoi.os "linux" -}}
+
+# ---------- 1. CORE SYSTEM & DESKTOP APPS ----------
+log "Checking core applications and Docker..."
+sudo -v
+
+# Install VS Code if missing
+if ! command_exists code; then
+    log "Installing VS Code..."
+    curl -p https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+    sudo install -D -o root -g root -m 644 microsoft.gpg /etc/apt/keyrings/microsoft.gpg
+    echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | sudo tee /etc/apt/sources.list.d/vscode.list > /dev/null
+    rm -f microsoft.gpg
+    sudo apt-get update && sudo apt-get install -y code
+fi
+
+# Install Docker if missing
+if ! command_exists docker; then
+    log "Installing Docker..."
+    sudo apt-get install -y ca-certificates curl gnupg
+    sudo install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    sudo chmod a+r /etc/apt/keyrings/docker.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo apt-get update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+fi
+
+# Install Mattermost Desktop
+if ! command_exists mattermost-desktop; then
+    log "Installing Mattermost Desktop..."
+    curl -o- https://deb.packages.mattermost.com/setup-repo.sh | sudo bash
+    sudo apt-get install -y mattermost-desktop
+fi
+
+# ---------- OS SPECIFIC PREPARATION ----------
+export DEBIAN_FRONTEND=noninteractive
+
+apt_installed() {
+    dpkg -s "$1" >/dev/null 2>&1
+}
+
+log "Starting Linux system provisioning..."
+sudo -v || { echo "❌ Sudo access required"; exit 1; }
+
+REQUIRED_PKGS=(
+    ca-certificates gnupg lsb-release software-properties-common
+    curl wget git unzip build-essential zsh fzf jq htop tree tmux
+    pkg-config libssl-dev libdbus-1-dev libncursesw5-dev
+    libasound2-dev libpulse-dev libreadline-dev libsqlite3-dev
+)
+
+MISSING_PKGS=()
+for pkg in "${REQUIRED_PKGS[@]}"; do
+    apt_installed "$pkg" || MISSING_PKGS+=("$pkg")
+done
+
+if (( ${#MISSING_PKGS[@]} > 0 )); then
+    log "Apt: Installing missing dependencies: ${MISSING_PKGS[*]}"
+    sudo apt-get update -qq || warn "Apt update encountered warnings, continuing..."
+    sudo apt-get install -y "${MISSING_PKGS[@]}" || sudo apt-get install -y libncurses-dev "${MISSING_PKGS[@]/libncursesw5-dev/}"
+fi
+{{ end -}}
+
+# ==============================================================================
+#                          SHARED TOOLING (MISE & CARGO)
+# ==============================================================================
+
+# 1. Mise Runtime Setup (Shared path logic)
+if ! command_exists mise; then
+    log "Installing mise..."
+    curl https://mise.jdx.dev/install.sh | sh
+fi
+# Ensure mise is in PATH for the remainder of the script
+{{ if eq .chezmoi.os "darwin" -}}
+eval "$(/opt/homebrew/bin/brew shellenv)"
+{{ end -}}
+export PATH="$HOME/.local/share/mise/bin:$PATH"
+
+log "Syncing Runtimes (Node & Python)..."
+mise use --global node@latest
+mise use --global python@latest
+ok "Runtimes installed: $(node -v) and $(python --version)"
+
+# 2. Rust & Cargo
+if ! command_exists cargo; then
+    log "Installing Rust/Cargo..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    source "$HOME/.cargo/env"
+fi
+
+# 3. Cargo Tools Sync (Untouched logic)
+log "Syncing Rust CLI tools..."
+declare -A TOOLS=(
+    ["ripgrep"]="rg" ["fd-find"]="fd" ["bat"]="bat" ["eza"]="eza"
+    ["zoxide"]="zoxide" ["xh"]="xh" ["zellij"]="zellij" ["gitui"]="gitui"
+    ["du-dust"]="dust" ["dua-cli"]="dua" ["starship"]="starship"
+    ["hyperfine"]="hyperfine" ["bacon"]="bacon" ["fselect"]="fselect"
+    ["git-delta"]="delta" ["ripgrep_all"]="rga" ["tokei"]="tokei"
+    ["wiki-tui"]="wiki-tui" ["just"]="just" ["mask"]="mask"
+    ["mprocs"]="mprocs" ["presenterm"]="presenterm" ["kondo"]="kondo"
+    ["bob-nvim"]="bob" ["ripgrep-all"]="rga" ["cargo-info"]="cargo-info"
+)
+
+for pkg in "${!TOOLS[@]}"; do
+    bin="${TOOLS[$pkg]}"
+    if command_exists "$bin"; then
+        echo -e "⏭️  $bin already installed, skipping..."
+    else
+        echo -ne "⌛ Installing $pkg..."
+        cargo install "$pkg" --quiet || warn "Failed to install $pkg"
+    fi
+done
+
+# ==============================================================================
+#                          LINUX SPECIFIC POST-INSTALLS
+# ==============================================================================
+{{ if eq .chezmoi.os "linux" -}}
+echo "Installing non-cargo tools for Linux..."
+
+if ! command_exists fish; then
+    sudo apt-add-repository ppa:fish-shell/release-3 && sudo apt update && sudo apt install fish -y || warn "Fish install failed"
+fi
+if ! command_exists nu; then
+    sudo snap install nushell || warn "Nushell snap failed"
+fi
+if ! command_exists ncspot; then
+    sudo snap install ncspot || warn "ncspot install failed"
+fi
+if ! command_exists rtx; then
+    curl -sSfL https://rtx.rs/install.sh | sh || warn "rtx install failed"
+fi
+if ! command_exists espanso; then
+    sudo snap install espanso || warn "espanso snap failed"
+fi
+
+# Cursor AI (Linux only)
+if ! command_exists cursor; then
+    log "Installing Cursor AI..."
+    mkdir -p "$HOME/.local/bin"
+    if curl -L https://downloader.cursor.sh/linux/appImage/x64 -o "$HOME/.local/bin/cursor.appimage"; then
+        chmod +x "$HOME/.local/bin/cursor.appimage"
+        ln -sf "$HOME/.local/bin/cursor.appimage" "$HOME/.local/bin/cursor"
+        ok "Cursor installed"
+    fi
+fi
+{{ end -}}
+
+echo -e "\n"
+ok "Provisioning complete! Please restart your shell."
+{{ end -}}

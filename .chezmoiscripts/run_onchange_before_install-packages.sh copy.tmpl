@@ -1,0 +1,129 @@
+{{ if (or (eq .chezmoi.os "linux") (eq .chezmoi.os "darwin")) -}}
+#!/usr/bin/env bash
+
+# Robust Error Handling
+set -Eeuo pipefail
+trap 'echo -e "\n❌ ERROR: Command failed at line $LINENO. Exiting..."; exit 1' ERR
+
+# ---------- HELPER FUNCTIONS ----------
+log() { echo -e "\n🔹 \033[1;34m$1\033[0m"; }
+ok()  { echo -e "✅ \033[1;32m$1\033[0m"; }
+warn(){ echo -e "⚠️  \033[1;33m$1\033[0m"; }
+
+command_exists() { command -v "$1" >/dev/null 2>&1; }
+
+{{ if eq .chezmoi.os "linux" -}}
+# ---------- LINUX BOOTSTRAP ----------
+export DEBIAN_FRONTEND=noninteractive
+apt_installed() { dpkg -s "$1" >/dev/null 2>&1; }
+
+fix_caddy_gpg() {
+    if [ -f /etc/apt/sources.list.d/caddy-focal.list ] || [ -f /etc/apt/sources.list.d/caddy-stable.list ]; then
+        log "Updating Caddy GPG keyring..."
+        # Removed --overwrite for better compatibility
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg || true
+    fi
+}
+
+safe_apt_install() {
+  local pkgs=("$@")
+  local missing=()
+  for pkg in "${pkgs[@]}"; do
+    apt_installed "$pkg" || missing+=("$pkg")
+  done
+  if (( ${#missing[@]} > 0 )); then
+    log "Apt: Installing missing dependencies: ${missing[*]}"
+    fix_caddy_gpg
+    sudo apt-get update -qq || warn "Apt update encountered warnings, continuing..."
+    sudo apt-get install -y "${missing[@]}" || sudo apt-get install -y libncurses-dev "${missing[@]/libncursesw5-dev/}"
+  fi
+}
+
+log "Starting Linux system provisioning..."
+sudo -v || { echo "❌ Sudo access required"; exit 1; }
+
+safe_apt_install \
+    ca-certificates gnupg lsb-release software-properties-common \
+    curl wget git unzip build-essential zsh fzf jq htop tree tmux \
+    pkg-config libssl-dev libdbus-1-dev libncursesw5-dev \
+    libasound2-dev libpulse-dev libreadline-dev libsqlite3-dev
+{{ end -}}
+
+# ---------- TOOL MANAGERS ----------
+
+# 1. Mise Installation
+if ! command_exists mise; then
+    log "Installing mise..."
+    curl https://mise.jdx.dev/install.sh | sh
+fi
+export PATH="$HOME/.local/share/mise/bin:$PATH"
+
+# 2. Use Mise for Binaries
+log "Installing binaries via mise..."
+mise use -g helix@latest
+mise use -g yazi@latest
+mise use -g usage@latest 
+
+# 3. Handle ncspot via Mise/ASDF (avoids the Rust build error)
+if ! command_exists ncspot; then
+    log "Installing ncspot via mise (asdf backend)..."
+    mise plugin install ncspot https://github.com/hrand8/asdf-ncspot.git || true
+    mise use -g ncspot@latest || warn "Could not install ncspot via mise"
+fi
+
+# 4. Cargo Installation
+if ! command_exists cargo; then
+    log "Installing Rust/Cargo..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    source "$HOME/.cargo/env"
+fi
+
+# 5. Cargo Tools
+log "Syncing Rust CLI tools..."
+
+# FIXED: 'nu' is the crate name for nushell
+rust_tools=(
+  nu ripgrep fd-find bat eza zoxide xh zellij gitui du-dust
+  dua-cli starship hyperfine bacon fselect git-delta
+  ripgrep_all tokei wiki-tui just mask mprocs
+  presenterm kondo bob-nvim
+)
+
+total=${#rust_tools[@]}
+current=0
+
+for tool in "${rust_tools[@]}"; do
+    current=$((current + 1))
+    
+    check_cmd=$tool
+    [[ "$tool" == "nu" ]] && check_cmd="nu"
+    [[ "$tool" == "fd-find" ]] && check_cmd="fd"
+    [[ "$tool" == "du-dust" ]] && check_cmd="dust"
+    [[ "$tool" == "dua-cli" ]] && check_cmd="dua"
+    [[ "$tool" == "yazi-cli" ]] && check_cmd="yazi"
+    [[ "$tool" == "helix-term" ]] && check_cmd="hx"
+
+    if command_exists "$check_cmd"; then
+        echo -e "⏭️  [$current/$total] $check_cmd already installed, skipping..."
+        continue
+    fi
+
+    echo -ne "⌛ [$current/$total] Installing $tool..."
+    # If a specific tool fails, don't kill the whole script
+    cargo install "$tool" --quiet || warn "Failed to install $tool"
+done
+
+# ---------- FINAL CLEANUP ----------
+{{ if eq .chezmoi.os "linux" -}}
+if ! command_exists cursor; then
+    log "Installing Cursor AI..."
+    mkdir -p "$HOME/.local/bin"
+    curl -L https://downloader.cursor.sh/linux/appImage/x64 -o "$HOME/.local/bin/cursor.appimage"
+    chmod +x "$HOME/.local/bin/cursor.appimage"
+    ln -sf "$HOME/.local/bin/cursor.appimage" "$HOME/.local/bin/cursor"
+fi
+{{ end -}}
+
+echo -e "\n"
+ok "Provisioning complete!"
+{{ end -}}
