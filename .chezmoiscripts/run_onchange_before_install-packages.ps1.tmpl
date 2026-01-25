@@ -1,30 +1,102 @@
 {{ if eq .chezmoi.os "windows" -}}
-Write-Host "🔹 Starting Windows Provisioning" -ForegroundColor Cyan
+# ---------- ROBUST ERROR HANDLING ----------
+$ErrorActionPreference = "Stop"
 
-# 1. Install Scoop if missing
-if (!(Get-Command scoop -ErrorAction SilentlyContinue)) {
-    Invoke-RestMethod -Uri get.scoop.sh | Invoke-Expression
+# ---------- HELPER FUNCTIONS ----------
+function Log-Info ($Message) {
+    Write-Host "`n🔹 $Message" -ForegroundColor Cyan
 }
 
-# 2. Add essential buckets
-scoop bucket add extras
-scoop bucket add main
+function Log-Ok ($Message) {
+    Write-Host "✅ $Message" -ForegroundColor Green
+}
 
-# 3. List of your requested tools
-$apps = @(
-    "fish", "nushell", "ripgrep", "fd", "bat", "eza", "zoxide", "xh", 
-    "zellij", "gitui", "dust", "dua", "starship", "yazi", "hyperfine", 
-    "helix", "bacon", "fselect", "ncspot", "delta", "ripgrep-all", 
-    "tokei", "wiki-tui", "just", "mask", "mprocs", "presenterm", 
-    "kondo", "bob", "mise", "espanso"
-)
+function Log-Warn ($Message) {
+    Write-Host "⚠️  $Message" -ForegroundColor Yellow
+}
 
-foreach ($app in $apps) {
-    if (!(scoop list | Select-String $app)) {
-        Write-Host "Installing $app..." -ForegroundColor Yellow
-        scoop install $app
+function Command-Exists ($Name) {
+    return Get-Command $Name -ErrorAction SilentlyContinue
+}
+
+# ==============================================================================
+#                               WINDOWS PROVISIONING
+# ==============================================================================
+Log-Info "Starting Windows system provisioning..."
+
+# 1. Ensure Scoop is installed
+if (!(Command-Exists "scoop")) {
+    Log-Info "Installing Scoop..."
+    try {
+        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+        Invoke-RestMethod -Uri get.scoop.sh | Invoke-Expression
+        # Update path for current session
+        $env:PATH += ";$env:USERPROFILE\scoop\shims"
+    } catch {
+        Log-Warn "Failed to install Scoop: $_"
+        exit 1
+    }
+} else {
+    Log-Ok "Scoop is already installed."
+}
+
+# 2. Setup Buckets
+Log-Info "Configuring Scoop Buckets..."
+$buckets = @("main", "extras", "nerd-fonts")
+foreach ($bucket in $buckets) {
+    if (!(scoop bucket list | Select-String $bucket)) {
+        Log-Info "Adding bucket: $bucket"
+        scoop bucket add $bucket
     }
 }
 
-Write-Host "✅ Windows Provisioning Complete!" -ForegroundColor Green
+# 3. Install Core Desktop Apps (Sync with Linux/Mac list)
+Log-Info "Checking Windows Desktop Apps..."
+$desktopApps = @("vscode", "docker", "mattermost", "cursor", "espanso")
+foreach ($app in $desktopApps) {
+    if (!(scoop list | Select-String "^$app\s")) {
+        Log-Info "Installing $app..."
+        scoop install $app
+    } else {
+        Write-Host "⏭️  $app already installed, skipping..."
+    }
+}
+
+# 4. Install CLI Tools
+Log-Info "Checking Windows CLI tools..."
+$cliTools = @(
+    "fish", "nushell", "ripgrep", "fd", "bat", "eza", "zoxide", "xh", 
+    "zellij", "gitui", "dust", "dua", "starship", "yazi", "hyperfine", 
+    "helix", "bacon", "fselect", "ncspot", "git-delta", "ripgrep-all", 
+    "tokei", "wiki-tui", "just", "mask", "mprocs", "presenterm", 
+    "kondo", "bob", "mise", "jq", "fzf", "htop", "tmux"
+)
+
+foreach ($tool in $cliTools) {
+    if (!(scoop list | Select-String "^$tool\s")) {
+        Log-Info "Installing $tool..."
+        try {
+            scoop install $tool
+        } catch {
+            Log-Warn "Failed to install $tool"
+        }
+    } else {
+        Write-Host "⏭️  $tool already installed, skipping..."
+    }
+}
+
+# 5. Sync Runtimes via Mise (matches Unix logic)
+if (Command-Exists "mise") {
+    Log-Info "Syncing Runtimes via Mise (Node & Python)..."
+    try {
+        & mise use --global node@latest
+        & mise use --global python@latest
+        Log-Ok "Runtimes managed by Mise are synced."
+    } catch {
+        Log-Warn "Mise runtime sync encountered an issue."
+    }
+}
+
+Log-Info ""
+Log-Ok "Provisioning complete! Please restart your terminal (PowerShell or Terminal.exe)."
 {{ end -}}
