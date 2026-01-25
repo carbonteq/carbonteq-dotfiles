@@ -29,20 +29,40 @@ fi
 
 # 2. Install Desktop Apps (Casks) if missing
 log "Checking macOS Desktop Apps..."
-MAC_CASKS=(visual-studio-code docker mattermost cursor espanso)
-for cask in "${MAC_CASKS[@]}"; do
-    if ! brew list --cask "$cask" >/dev/null 2>&1; then
+
+MAC_CASKS="
+docker-desktop
+mattermost
+cursor
+espanso
+visual-studio-code
+"
+
+for cask in $MAC_CASKS; do
+    case "$cask" in
+        docker-desktop)      app_path="/Applications/Docker.app" ;;
+        mattermost)          app_path="/Applications/Mattermost.app" ;;
+        cursor)              app_path="/Applications/Cursor.app" ;;
+        espanso)             app_path="/Applications/Espanso.app" ;;
+        visual-studio-code)  app_path="/Applications/Visual Studio Code.app" ;;
+        *)                   app_path="" ;;
+    esac
+
+    if brew list --cask "$cask" >/dev/null 2>&1; then
+        echo "⏭️  $cask already installed via Homebrew, skipping..."
+    elif [ -n "$app_path" ] && [ -d "$app_path" ]; then
+        echo "⏭️  $cask app already exists at $app_path, skipping..."
+    else
         log "Installing $cask..."
         brew install --cask "$cask"
-    else
-        echo "⏭️  $cask already installed, skipping..."
     fi
 done
 
 # 3. Install CLI Tools (Formulae) if missing
 log "Checking macOS CLI tools..."
-MAC_TOOLS=(fzf jq htop tree tmux git wget coreutils fish nushell ncspot mise)
-for tool in "${MAC_TOOLS[@]}"; do
+
+MAC_TOOLS="fzf jq htop tree tmux git wget coreutils fish nushell ncspot mise"
+for tool in $MAC_TOOLS; do
     if ! brew list "$tool" >/dev/null 2>&1; then
         log "Installing $tool..."
         brew install "$tool"
@@ -150,27 +170,46 @@ fi
 
 # 3. Cargo Tools Sync (Untouched logic)
 log "Syncing Rust CLI tools..."
-declare -A TOOLS=(
-    ["ripgrep"]="rg" ["fd-find"]="fd" ["bat"]="bat" ["eza"]="eza"
-    ["zoxide"]="zoxide" ["xh"]="xh" ["zellij"]="zellij" ["gitui"]="gitui"
-    ["du-dust"]="dust" ["dua-cli"]="dua" ["starship"]="starship"
-    ["hyperfine"]="hyperfine" ["bacon"]="bacon" ["fselect"]="fselect"
-    ["git-delta"]="delta" ["ripgrep_all"]="rga" ["tokei"]="tokei"
-    ["wiki-tui"]="wiki-tui" ["just"]="just" ["mask"]="mask"
-    ["mprocs"]="mprocs" ["presenterm"]="presenterm" ["kondo"]="kondo"
-    ["bob-nvim"]="bob" ["ripgrep-all"]="rga" ["cargo-info"]="cargo-info"
-)
 
-for pkg in "${!TOOLS[@]}"; do
-    bin="${TOOLS[$pkg]}"
+RUST_TOOLS="
+ripgrep:rg
+fd-find:fd
+bat:bat
+eza:eza
+zoxide:zoxide
+xh:xh
+zellij:zellij
+gitui:gitui
+du-dust:dust
+dua-cli:dua
+starship:starship
+hyperfine:hyperfine
+bacon:bacon
+fselect:fselect
+git-delta:delta
+ripgrep-all:rga
+tokei:tokei
+wiki-tui:wiki-tui
+just:just
+mask:mask
+mprocs:mprocs
+presenterm:presenterm
+kondo:kondo
+bob-nvim:bob
+cargo-info:cargo-info
+"
+
+for entry in $RUST_TOOLS; do
+    pkg="${entry%%:*}"
+    bin="${entry##*:}"
+
     if command_exists "$bin"; then
-        echo -e "⏭️  $bin already installed, skipping..."
+        echo "⏭️  $bin already installed, skipping..."
     else
-        echo -ne "⌛ Installing $pkg..."
+        echo "⌛ Installing $pkg..."
         cargo install "$pkg" --quiet || warn "Failed to install $pkg"
     fi
 done
-
 # ==============================================================================
 #                          LINUX SPECIFIC POST-INSTALLS
 # ==============================================================================
