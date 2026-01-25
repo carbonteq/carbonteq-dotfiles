@@ -27,15 +27,32 @@ if ! command_exists brew; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
 
-# 2. Install Desktop Apps & Core CLI via Homebrew
-log "Installing Apps and Tools via Brew..."
-brew install --cask visual-studio-code docker mattermost cursor espanso
-brew install fzf jq htop tree tmux git wget coreutils fish nushell ncspot
+# 2. Install Desktop Apps (Casks) if missing
+log "Checking macOS Desktop Apps..."
+MAC_CASKS=(visual-studio-code docker mattermost cursor espanso)
+for cask in "${MAC_CASKS[@]}"; do
+    if ! brew list --cask "$cask" >/dev/null 2>&1; then
+        log "Installing $cask..."
+        brew install --cask "$cask"
+    else
+        echo "⏭️  $cask already installed, skipping..."
+    fi
+done
 
-# 3. Install Mise
-if ! command_exists mise; then
-    brew install mise
-fi
+# 3. Install CLI Tools (Formulae) if missing
+log "Checking macOS CLI tools..."
+MAC_TOOLS=(fzf jq htop tree tmux git wget coreutils fish nushell ncspot mise)
+for tool in "${MAC_TOOLS[@]}"; do
+    if ! brew list "$tool" >/dev/null 2>&1; then
+        log "Installing $tool..."
+        brew install "$tool"
+    else
+        echo "⏭️  $tool already installed, skipping..."
+    fi
+done
+
+# Ensure brew environment is active for the rest of the script
+eval "$(/opt/homebrew/bin/brew shellenv)"
 {{ end -}}
 
 # ==============================================================================
