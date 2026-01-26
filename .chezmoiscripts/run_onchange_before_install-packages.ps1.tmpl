@@ -3,62 +3,64 @@
 $ErrorActionPreference = "Stop"
 
 # ---------- HELPER FUNCTIONS ----------
-function Log-Info ($Message) {
-    Write-Host "`n🔹 $Message" -ForegroundColor Cyan
-}
+function Log-Info ($Message) { Write-Host "`n🔹 $Message" -ForegroundColor Cyan }
+function Log-Ok ($Message) { Write-Host "✅ $Message" -ForegroundColor Green }
+function Log-Warn ($Message) { Write-Host "⚠️  $Message" -ForegroundColor Yellow }
 
-function Log-Ok ($Message) {
-    Write-Host "✅ $Message" -ForegroundColor Green
-}
-
-function Log-Warn ($Message) {
-    Write-Host "⚠️  $Message" -ForegroundColor Yellow
-}
-
+# Use a more robust check for Scoop on fresh systems
 function Command-Exists ($Name) {
-    return Get-Command $Name -ErrorAction SilentlyContinue
+    if (Get-Command $Name -ErrorAction SilentlyContinue) { return $true }
+    if (Test-Path "$env:USERPROFILE\scoop\shims\$Name.exe") { return $true }
+    return $false
 }
 
-# ==============================================================================
-#                               WINDOWS PROVISIONING
-# ==============================================================================
 Log-Info "Starting Windows system provisioning..."
 
 # 1. Ensure Scoop is installed
 if (!(Command-Exists "scoop")) {
     Log-Info "Installing Scoop..."
     try {
+        # This is vital for fresh installs to allow the rest of the script to run
         Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+        
+        $scoopInstallPath = "$env:USERPROFILE\scoop\shims"
         Invoke-RestMethod -Uri get.scoop.sh | Invoke-Expression
-        # Update path for current session
-        $env:PATH += ";$env:USERPROFILE\scoop\shims"
+        
+        # Force the path into the current session immediately
+        if ($env:PATH -notlike "*$scoopInstallPath*") {
+            $env:PATH += ";$scoopInstallPath"
+        }
     } catch {
         Log-Warn "Failed to install Scoop: $_"
         exit 1
     }
-} else {
-    Log-Ok "Scoop is already installed."
+}
+
+# 1b. CRITICAL: Install Git immediately (Required for Scoop Buckets)
+if (!(Command-Exists "git")) {
+    Log-Info "Installing Git (Required for Scoop buckets)..."
+    scoop install git
 }
 
 # 2. Setup Buckets
 Log-Info "Configuring Scoop Buckets..."
 $buckets = @("main", "extras", "nerd-fonts")
 foreach ($bucket in $buckets) {
-    if (!(scoop bucket list | Select-String $bucket)) {
+    # Using 'scoop bucket list' can be slow; check if the folder exists for speed
+    if (!(Test-Path "$env:USERPROFILE\scoop\buckets\$bucket")) {
         Log-Info "Adding bucket: $bucket"
         scoop bucket add $bucket
     }
 }
 
-# 3. Install Core Desktop Apps (Sync with Linux/Mac list)
+# 3. Install Core Desktop Apps
 Log-Info "Checking Windows Desktop Apps..."
 $desktopApps = @("vscode", "docker", "mattermost", "cursor", "espanso")
 foreach ($app in $desktopApps) {
     if (!(scoop list | Select-String "^$app\s")) {
         Log-Info "Installing $app..."
+        # Note: Docker/VScode might require admin or extra steps via scoop
         scoop install $app
-    } else {
-        Write-Host "⏭️  $app already installed, skipping..."
     }
 }
 
@@ -69,26 +71,21 @@ $cliTools = @(
     "zellij", "gitui", "dust", "dua", "starship", "yazi", "hyperfine", 
     "helix", "bacon", "fselect", "ncspot", "git-delta", "ripgrep-all", 
     "tokei", "wiki-tui", "just", "mask", "mprocs", "presenterm", 
-    "kondo", "bob", "mise", "jq", "fzf", "htop", "tmux"
-)
+    "kondo", "bob", "mise", "jq", "fzf", "htop"
+) # Removed 'tmux' - Tmux does not run natively on Windows (requires WSL/MSYS2)
 
 foreach ($tool in $cliTools) {
     if (!(scoop list | Select-String "^$tool\s")) {
         Log-Info "Installing $tool..."
-        try {
-            scoop install $tool
-        } catch {
-            Log-Warn "Failed to install $tool"
-        }
-    } else {
-        Write-Host "⏭️  $tool already installed, skipping..."
+        try { scoop install $tool } catch { Log-Warn "Failed to install $tool" }
     }
 }
 
-# 5. Sync Runtimes via Mise (matches Unix logic)
+# 5. Sync Runtimes via Mise
 if (Command-Exists "mise") {
     Log-Info "Syncing Runtimes via Mise (Node & Python)..."
     try {
+        # Use '&' to call the shim directly to ensure PowerShell finds it
         & mise use --global node@latest
         & mise use --global python@latest
         Log-Ok "Runtimes managed by Mise are synced."
@@ -97,6 +94,5 @@ if (Command-Exists "mise") {
     }
 }
 
-Log-Info ""
-Log-Ok "Provisioning complete! Please restart your terminal (PowerShell or Terminal.exe)."
+Log-Ok "Provisioning complete! Restart your terminal to see all changes."
 {{ end -}}
