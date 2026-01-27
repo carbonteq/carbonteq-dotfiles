@@ -1,0 +1,33 @@
+packages:
+  # Standard cross-platform names
+  common:
+    - fish
+    - nushell
+    - ripgrep
+    - fd
+    - bat
+    - eza
+    - zoxide
+    - xh
+    - zellij
+    - gitui
+    - starship
+    - yazi
+    - hyperfine
+    - bacon
+    - fselect
+    - tokei
+    - just
+    - mprocs
+    - kondo
+  # Tools with varying names or specific versions
+  rust_binaries:
+    - du-dust
+    - dua-cli
+    - cargo-info
+    - rusty-man
+    - ripgrep-all
+    - wiki-tui
+    - presenterm
+    - bob-nvim
+    - mise

@@ -1,9 +1,11 @@
 {{ if (or (eq .chezmoi.os "linux") (eq .chezmoi.os "darwin")) -}}
 #!/usr/bin/env bash
 
+
 # Robust Error Handling
 set -Eeuo pipefail
 trap 'echo -e "\n❌ ERROR: Command failed at line $LINENO. Exiting..."; exit 1' ERR
+
 
 # ---------- HELPER FUNCTIONS ----------
 log()   { echo -e "\n🔹 \033[1;34m$1\033[0m"; }
@@ -154,12 +156,26 @@ fi
 {{ if eq .chezmoi.os "darwin" -}}
 eval "$(/opt/homebrew/bin/brew shellenv)"
 {{ end -}}
-export PATH="$HOME/.local/share/mise/bin:$PATH"
+
+
+# Ensure mise and its installed tools are in PATH for the remainder of this script
+export PATH="$HOME/.local/share/mise/bin:$HOME/.local/share/mise/shims:$PATH"
+
+# Load mise environment into the current shell session
+eval "$(mise activate bash --shims)"
 
 log "Syncing Runtimes (Node & Python)..."
 mise use --global node@latest
 mise use --global python@latest
-ok "Runtimes installed: $(node -v) and $(python --version)"
+
+# Use 'mise exec' to bypass PATH issues during the install process
+NODE_VER=$(mise exec node -- node -v)
+# Python might be called 'python' or 'python3', we check both
+PY_VER=$(mise exec python -- python --version 2>/dev/null || mise exec python -- python3 --version 2>/dev/null || echo "Unknown")
+
+ok "Runtimes installed: $NODE_VER and $PY_VER"
+
+
 
 # 2. Rust & Cargo
 if ! command_exists cargo; then
@@ -197,6 +213,7 @@ presenterm:presenterm
 kondo:kondo
 bob-nvim:bob
 cargo-info:cargo-info
+nu:nu
 "
 
 for entry in $RUST_TOOLS; do
@@ -210,39 +227,103 @@ for entry in $RUST_TOOLS; do
         cargo install "$pkg" --quiet || warn "Failed to install $pkg"
     fi
 done
+
+
+
+
 # ==============================================================================
 #                          LINUX SPECIFIC POST-INSTALLS
 # ==============================================================================
 {{ if eq .chezmoi.os "linux" -}}
-echo "Installing non-cargo tools for Linux..."
+log "Starting Linux-specific post-installation tasks..."
 
+# 1. Homebrew & Path Setup (Required for evil-helix)
+if ! command_exists brew; then
+    log "Homebrew not found. Installing Homebrew for Linux..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    
+    # Dynamically add to current session path
+    test -d ~/.linuxbrew && eval "$(~/.linuxbrew/bin/brew shellenv)"
+    test -d /home/linuxbrew/.linuxbrew && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    ok "Homebrew installed and path configured."
+else
+    echo "⏭️  Homebrew already installed, skipping..."
+    # Ensure environment is loaded even if already installed
+    test -d ~/.linuxbrew && eval "$(~/.linuxbrew/bin/brew shellenv)"
+    test -d /home/linuxbrew/.linuxbrew && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+fi
+
+# 2. evil-helix (via Homebrew)
+if ! command_exists hx; then
+    log "Installing evil-helix..."
+    brew install evil-helix && ok "evil-helix installed."
+else
+    # Check if the existing 'hx' is actually evil-helix or standard helix
+    if hx --version | grep -iq "evil"; then
+        echo "⏭️  evil-helix already installed, skipping..."
+    else
+        warn "Standard Helix found, but you requested evil-helix. Skipping to avoid conflict."
+    fi
+fi
+
+# 3. Fish Shell
 if ! command_exists fish; then
-    sudo apt-add-repository ppa:fish-shell/release-3 && sudo apt update && sudo apt install fish -y || warn "Fish install failed"
-fi
-if ! command_exists nu; then
-    sudo snap install nushell || warn "Nushell snap failed"
-fi
-if ! command_exists ncspot; then
-    sudo snap install ncspot || warn "ncspot install failed"
-fi
-if ! command_exists rtx; then
-    curl -sSfL https://rtx.rs/install.sh | sh || warn "rtx install failed"
-fi
-if ! command_exists espanso; then
-    sudo snap install espanso || warn "espanso snap failed"
+    log "Installing Fish shell..."
+    sudo apt install -y fish && ok "Fish installed."
+else
+    echo "⏭️  Fish already installed, skipping..."
 fi
 
-# Cursor AI (Linux only)
+# 4. Snap Packages (Yazi, ncspot, espanso)
+# Helper for snap checks
+install_snap() {
+    local name=$1
+    local classic=$2
+    if ! snap list "$name" >/dev/null 2>&1; then
+        log "Installing $name via Snap..."
+        sudo snap install "$name" $classic && ok "$name installed."
+    else
+        echo "⏭️  Snap: $name already installed, skipping..."
+    fi
+}
+
+install_snap "yazi" "--classic"
+install_snap "ncspot" ""
+install_snap "espanso" "--classic"
+
+# 5. rusty-man (Cargo)
+if ! command_exists rusty-man; then
+    log "Installing rusty-man via Cargo..."
+    cargo install rusty-man --locked && ok "rusty-man installed."
+else
+    echo "⏭️  rusty-man already installed, skipping..."
+fi
+
+# 6. Cursor AI (AppImage)
 if ! command_exists cursor; then
     log "Installing Cursor AI..."
     mkdir -p "$HOME/.local/bin"
-    if curl -L https://downloader.cursor.sh/linux/appImage/x64 -o "$HOME/.local/bin/cursor.appimage"; then
+    # Ensure the directory is in the path for the symlink to be useful
+    export PATH="$HOME/.local/bin:$PATH"
+    
+    if curl -L "https://downloader.cursor.sh/linux/appImage/x64" -o "$HOME/.local/bin/cursor.appimage"; then
         chmod +x "$HOME/.local/bin/cursor.appimage"
         ln -sf "$HOME/.local/bin/cursor.appimage" "$HOME/.local/bin/cursor"
-        ok "Cursor installed"
+        ok "Cursor AI installed to ~/.local/bin/cursor"
+    else
+        warn "Failed to download Cursor AI AppImage."
     fi
+else
+    echo "⏭️  Cursor already installed, skipping..."
 fi
+
+echo -e "\n🎉 Linux Post-Install Complete!"
 {{ end -}}
+
+
+# ==============================================================================
+#                          Provisioning Complete!
+# ==============================================================================
 
 echo -e "\n"
 ok "Provisioning complete! Please restart your shell."
