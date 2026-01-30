@@ -1,0 +1,32 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+{{ template "scripts_library.sh" . }}
+
+log "Installing Shells for Linux..."
+
+# Fish Shell
+if ! command_exists fish; then
+    sudo apt update && sudo apt install -y fish
+else
+    skip "Fish shell"
+fi
+
+# Nushell (Installed via Cargo for the most up-to-date features)
+if ! command_exists nu; then
+    cargo install nu --quiet
+else
+    skip "Nushell"
+fi
+
+# Alacritty
+if ! command_exists alacritty; then
+    sudo add-apt-repository ppa:aslatter/ppa -y
+    sudo apt update && sudo apt install -y alacritty
+else
+    skip "Alacritty"
+fi
+
+ok "Linux Shells installed."
+
+
+{{ end -}}

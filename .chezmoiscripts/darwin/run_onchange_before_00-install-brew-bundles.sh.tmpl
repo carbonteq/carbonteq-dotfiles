@@ -1,0 +1,28 @@
+{{ if eq .chezmoi.os "darwin" -}}
+#!/usr/bin/env bash
+{{ template "scripts_library.sh" . }}
+
+log "Starting macOS provisioning..." [cite: 37]
+
+if ! command_exists brew; then
+    log "Installing Homebrew..." [cite: 37]
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" [cite: 37]
+    eval "$(/opt/homebrew/bin/brew shellenv)" [cite: 37]
+fi
+
+MAC_CASKS="docker-desktop mattermost cursor espanso visual-studio-code" [cite: 38]
+for cask in $MAC_CASKS; do
+    if ! brew list --cask "$cask" >/dev/null 2>&1; then
+        log "Installing $cask..." [cite: 45]
+        brew install --cask "$cask" [cite: 45]
+    fi
+done
+
+MAC_TOOLS="fzf jq htop tree tmux git wget coreutils fish nushell ncspot mise" [cite: 46]
+for tool in $MAC_TOOLS; do
+    if ! brew list "$tool" >/dev/null 2>&1; then
+        log "Installing $tool..." [cite: 47]
+        brew install "$tool" [cite: 47]
+    fi
+done
+{{ end -}}

@@ -1,0 +1,66 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+{{ template "scripts_library.sh" . }}
+
+log "Checking core system dependencies..."
+sudo -v
+
+export DEBIAN_FRONTEND=noninteractive
+
+# Expanded list including Man Pages and Networking tools
+REQUIRED_PKGS=(
+    ca-certificates gnupg lsb-release software-properties-common
+    curl wget git unzip build-essential zsh fzf jq htop tree tmux
+    pkg-config libssl-dev libdbus-1-dev libncursesw5-dev
+    libasound2-dev libpulse-dev libreadline-dev libsqlite3-dev
+    man-db manpages manpages-dev manpages-posix
+    iproute2 dnsutils net-tools iputils-ping
+)
+
+MISSING_PKGS=()
+INSTALLED_PKGS=()
+
+# Sort packages into Installed and Missing categories
+for pkg in "${REQUIRED_PKGS[@]}"; do
+    if dpkg -s "$pkg" >/dev/null 2>&1; then
+        INSTALLED_PKGS+=("$pkg")
+    else
+        MISSING_PKGS+=("$pkg")
+    fi
+done
+
+# Explicitly print already installed dependencies
+if [ ${#INSTALLED_PKGS[@]} -gt 0 ]; then
+    skip "Already installed: ${INSTALLED_PKGS[*]}"
+fi
+
+# Only run apt-get if there are missing packages
+if [ ${#MISSING_PKGS[@]} -gt 0 ]; then
+    log "Installing missing dependencies: ${MISSING_PKGS[*]}..."
+    sudo apt-get update -qq || warn "Some repositories failed to update, continuing anyway..."
+    sudo apt-get install -y "${MISSING_PKGS[@]}"
+    
+    # Ensure man-db cache is generated for offline use
+    log "Updating man-db cache..."
+    sudo mandb > /dev/null 2>&1
+    
+    ok "Missing dependencies installed"
+else
+    ok "All dependencies are already satisfied."
+fi
+
+# --- VS Code ---
+if ! command_exists code; then
+    log "Installing VS Code..."
+    sudo mkdir -p /etc/apt/keyrings
+    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /etc/apt/keyrings/microsoft.gpg > /dev/null
+    echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | sudo tee /etc/apt/sources.list.d/vscode.list > /dev/null
+    sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/vscode.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
+    sudo apt-get install -y code
+    ok "VS Code installed"
+else
+    skip "VS Code is already installed"
+fi
+
+ok "System environment is ready"
+{{ end -}}

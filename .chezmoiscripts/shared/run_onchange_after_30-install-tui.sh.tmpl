@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+{{ template "scripts_library.sh" . }}
+
+log "Installing TUI Tools..."
+
+# Rust-based TUIs
+# Format: "crate-name:binary-name"
+RUST_TUIS="atuin:atuin presenterm:presenterm"
+
+for entry in $RUST_TUIS; do
+    pkg="${entry%%:*}"
+    bin="${entry##*:}"
+    if ! command_exists "$bin"; then
+        log "Installing $pkg..."
+        cargo install "$pkg" --quiet || warn "Failed to install $pkg"
+    else
+        skip "$pkg"
+    fi
+done
+
+# Go-based TUI Tools
+# Note: We install 'gum' and 'charm' which provide the TUI functionality
+# you were looking for with bubbletea/lipgloss.
+if command_exists go; then
+    # Define Go tools to install (binary-name:install-path)
+    GO_TOOLS="gum:github.com/charmbracelet/gum charm:github.com/charmbracelet/charm"
+    
+    for entry in $GO_TOOLS; do
+        bin="${entry%%:*}"
+        path="${entry##*:}"
+        log "Go_Tool: $entry"
+        if ! command_exists "$bin"; then
+            log "Installing $bin..."
+            go install "$path@latest" || warn "Failed to install $bin"
+        else
+            skip "$bin"
+        fi
+    done
+else
+    warn "Go not found. Skipping Go-based TUI tools."
+fi
+
+ok "TUI tools synced."

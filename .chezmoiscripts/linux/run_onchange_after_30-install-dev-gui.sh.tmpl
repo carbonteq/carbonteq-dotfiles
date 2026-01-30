@@ -1,0 +1,29 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+{{ template "scripts_library.sh" . }}
+
+# Zed Editor
+if ! command_exists zed; then
+    log "Installing Zed..." 
+    curl -fsSL https://zed.dev/install.sh | sh 
+else
+    skip "Zed Editor"
+fi
+
+# Mattermost
+if ! command_exists mattermost-desktop; then
+    log "Installing Mattermost..." 
+    curl -o- https://deb.packages.mattermost.com/setup-repo.sh | sudo bash 
+    sudo apt-get install -y mattermost-desktop 
+else
+    skip "Mattermost desktop"
+fi
+
+# Snap Packages
+log "Installing Snap apps..." 
+for snap_pkg in "yazi --classic" "ncspot" "espanso --classic"; do
+  sudo snap install $snap_pkg || warn "Failed to install $snap_pkg" 
+done
+
+ok "Zed, Mattermost, snap packages synced" 
+{{ end -}}

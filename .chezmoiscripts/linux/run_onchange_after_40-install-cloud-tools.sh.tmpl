@@ -1,0 +1,25 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+{{ template "scripts_library.sh" . }}
+
+# Google Cloud SDK
+if ! command_exists gcloud; then
+    log "Installing GCloud SDK..." 
+    curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/cloud.google.gpg 
+    echo "deb [signed-by=/etc/apt/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list >/dev/null 
+    sudo apt-get update && sudo apt-get install -y google-cloud-cli 
+else
+    skip "Google Cloud SDK"
+fi
+
+# Cloudflared
+if ! command_exists cloudflared; then
+    log "Installing cloudflared..." 
+    ARCH="$(dpkg --print-architecture)" 
+    curl -fsSL "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${ARCH}.deb" -o /tmp/cf.deb 
+else
+    skip "Cloudflared"
+fi
+
+ok "Google sdk and cloudflared synced" 
+{{ end -}}

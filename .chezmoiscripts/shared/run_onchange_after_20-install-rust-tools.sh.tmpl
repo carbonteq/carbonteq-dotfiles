@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+{{ template "scripts_library.sh" . }}
+
+if ! command_exists cargo; then
+    log "Installing Rust..." 
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y 
+    source "$HOME/.cargo/env" 
+else
+    skip "Rust (cargo)"
+fi
+
+# Format: "crate-name:binary-name"
+RUST_TOOLS="ripgrep:rg fd-find:fd bat:bat eza:eza zoxide:zoxide xh:xh zellij:zellij gitui:gitui starship:starship du-dust:dust dua-cli:dua hyperfine:hyperfine git-delta:delta ripgrep_all:rga tokei:tokei just:just mask:mask mprocs:mprocs fselect:fselect bacon:bacon cargo-info:cargo-info wiki-tui:wiki-tui rusty-man:rusty-man helix:hx kondo:kondo bob-nvim:bob" 
+
+for entry in $RUST_TOOLS; do
+    pkg="${entry%%:*}"
+    bin="${entry##*:}"
+    
+    if ! command_exists "$bin"; then
+        log "Installing $pkg..."
+        cargo install "$pkg" --quiet || warn "Failed to install $pkg" 
+    else
+        skip "$pkg"
+    fi
+done
+
+ok "Rust (cargo) and expanded CLI toolkit synced"

@@ -1,0 +1,19 @@
+{{ if eq .chezmoi.os "darwin" -}}
+#!/usr/bin/env bash
+{{ template "scripts_library.sh" . }}
+
+
+# Alacritty is a cask (GUI app), others are standard formula
+log "Installing Shells for macOS..."
+
+for pkg in fish nushell alacritty; do
+    if ! command_exists "$pkg"; then
+        brew install "$pkg"
+    else
+        skip "$pkg"
+    fi
+done
+
+ok "macOS Shells installed."
+
+{{ end -}}

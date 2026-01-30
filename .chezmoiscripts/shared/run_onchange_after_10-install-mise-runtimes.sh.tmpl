@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+{{ template "scripts_library.sh" . }}
+
+if ! command_exists mise; then
+    log "Installing mise..." 
+    curl https://mise.jdx.dev/install.sh | sh 
+else
+    skip "Mise"
+fi
+
+export PATH="$HOME/.local/share/mise/bin:$HOME/.local/share/mise/shims:$PATH" 
+eval "$(mise activate bash --shims)" 
+
+mise use --global node@lts 
+mise use --global python@latest 
+mise use --global pnpm@latest 
+mise use --global bun@latest 
+
+ok "Mise runtimes synced" 
