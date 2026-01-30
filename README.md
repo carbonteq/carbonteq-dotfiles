@@ -1,5 +1,3 @@
-Got it — you want a professional-style `README.md` for the **Carbonteq Dotfiles Repository**, reflecting your file structure, purpose, and automation logic with **Chezmoi**.  
-Here’s a polished and GitHub‑ready draft, styled like official open‑source dotfile repos (e.g. `thoughtbot/dotfiles`, `mathiasbynens/dotfiles`, and Crisp or Carbon roles).
 
 ***
 
@@ -153,4 +151,3 @@ Here’s a preview of what happens during installation:
 
 ***
 
-Would you like this README exported in **Markdown with GitHub badges and colorized section headings** (for example, adding 🧩 badges for “Setup”, “Tools”, etc.) or keep it cleaner and minimal for internal developer use?
