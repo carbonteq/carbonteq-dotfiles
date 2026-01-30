@@ -23,6 +23,9 @@ At Carbonteq, our dotfiles automate:
 
 ***
 
+![Demo GIF](./demo.gif)
+
+
 ## 📁 Repository Structure
 
 ```bash
@@ -133,14 +136,7 @@ This ensures idempotent, cross‑platform automation. Each run will **skip alrea
 
 ***
 
-## ✨ Preview
 
-Here’s a preview of what happens during installation:
-
-  
-*(Replace with actual repo GIF once ready.)*
-
-***
 
 ## 📚 References
 
