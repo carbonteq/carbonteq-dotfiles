@@ -79,7 +79,7 @@ These dotfiles automate:
 
 ```bash
 # Linux
-sudo apt install chezmoi --classic
+snap install chezmoi --classic
 
 # macOS (via Homebrew)
 brew install chezmoi
