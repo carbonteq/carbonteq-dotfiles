@@ -109,7 +109,7 @@ Chezmoi will detect your OS and execute the relevant `.chezmoiscripts`.
 
 ---
 
-## ⚠️ Important: Personal Dotfiles (Required Setup)
+### ⚠️ Important: Personal Dotfiles (Required Setup)
 
 This repository ships with **organization-level defaults** for Git, Zsh, and global ignores.
 Some files are **intentionally placeholders** and **must be customized** on your machine.
