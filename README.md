@@ -169,18 +169,6 @@ chezmoi update
 
 ---
 
-## 🧱 How It Works
-
-* **On-change scripts**:
-
-  * `before` scripts run before dotfiles are copied.
-  * `after` scripts run after dotfiles are applied.
-* **Shared scripts** install language runtimes and Rust-based toolchains.
-
-This ensures **idempotent, cross-platform automation**. Already-installed tools are skipped.
-
----
-
 ## 🔧 Tools Installed Automatically
 
 **Core Tools**
@@ -238,7 +226,11 @@ This ensures **idempotent, cross-platform automation**. Already-installed tools 
 ```
 
 > The script are categorized by OS, and chezmoi run it in alphabetical order. 
-> `run_onchange_before` and `run_onchange_after` are reserved keywords in chezmoi and explained earlier in Readme. The numerical numbering after it ( `00, 10, 20, 30...`) defines the order of execution.
+> `run_onchange_before` and `run_onchange_after` are reserved keywords in chezmoi and are explained below. The numerical numbering after it ( `00, 10, 20, 30...`) defines the order of execution.
+
+>   * `run_onchange` scripts run only first time and when it detects any new changes.
+>   * `before` scripts run before dotfiles are copied.
+>   * `after` scripts run after dotfiles are applied.
 
 ---
 
