@@ -23,7 +23,7 @@ if ! command_exists nu; then
     
     # Check if cargo is available in the current session
     if command_exists cargo; then
-        cargo install nu --quiet
+        cargo install nu
         if [ $? -eq 0 ]; then
             ok "Nushell successfully installed via Cargo."
         else
