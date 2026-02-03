@@ -4,8 +4,19 @@
 if ! command_exists cargo; then
     log "Installing Rust..." 
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y 
-    source "$HOME/.cargo/env" 
+    
+    # Source it for the current script session
+    . "$HOME/.cargo/env"
+    
+    # Ensure it's added to your shell profile for future sessions
+    SHELL_PROFILE="$([ -f "$HOME/.zshrc" ] && echo "$HOME/.zshrc" || echo "$HOME/.bashrc")"
+    if ! grep -qs "cargo/env" "$SHELL_PROFILE"; then
+        echo '. "$HOME/.cargo/env"' >> "$SHELL_PROFILE"
+        log "Added cargo to $SHELL_PROFILE"
+    fi
 else
+    # Even if cargo exists, ensure the current script session has it in PATH
+    . "$HOME/.cargo/env" 2>/dev/null || true
     skip "Rust (cargo)"
 fi
 

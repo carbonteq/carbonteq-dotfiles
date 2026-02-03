@@ -2,31 +2,55 @@
 #!/usr/bin/env bash
 {{ template "scripts_library.sh" . }}
 
-log "Installing Shells for Linux..."
+log "--- Starting Shell Installation Sequence ---"
 
 # Fish Shell
 if ! command_exists fish; then
+    log "Action: Installing Fish Shell..."
     sudo apt update && sudo apt install -y fish
+    if [ $? -eq 0 ]; then
+        ok "Fish Shell successfully installed."
+    else
+        error "Failed to install Fish Shell."
+    fi
 else
-    skip "Fish shell"
+    skip "Fish shell already present."
 fi
 
-# Nushell (Installed via Cargo for the most up-to-date features)
+# Nushell
 if ! command_exists nu; then
-    cargo install nu --quiet
+    log "Action: Installing Nushell via Cargo (this may take a few minutes)..."
+    
+    # Check if cargo is available in the current session
+    if command_exists cargo; then
+        cargo install nu --quiet
+        if [ $? -eq 0 ]; then
+            ok "Nushell successfully installed via Cargo."
+        else
+            error "Cargo failed to build Nushell."
+        fi
+    else
+        warn "Cargo not found. Skipping Nushell install. Run your Rust script first!"
+    fi
 else
-    skip "Nushell"
+    skip "Nushell already present."
 fi
 
 # Alacritty
 if ! command_exists alacritty; then
-    sudo add-apt-repository ppa:aslatter/ppa -y
-    sudo apt update && sudo apt install -y alacritty
+    log "Action: Adding Alacritty PPA and installing..."
+    sudo add-apt-repository ppa:aslatter/ppa -y && sudo apt update
+    sudo apt install -y alacritty
+    if [ $? -eq 0 ]; then
+        ok "Alacritty successfully installed."
+    else
+        error "Failed to install Alacritty."
+    fi
 else
-    skip "Alacritty"
+    skip "Alacritty already present."
 fi
 
-ok "Linux Shells installed."
-
+---
+ok "All Linux Shells processed."
 
 {{ end -}}
