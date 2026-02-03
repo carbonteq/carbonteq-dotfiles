@@ -19,11 +19,46 @@ else
     skip "Mattermost desktop"
 fi
 
+# Anytype (Official .deb from GitHub Releases)
+if ! command_exists anytype; then
+    log "Installing Anytype..."
+    # Ensure dependencies are met
+    sudo apt-get install -y libsecret-1-dev jq
+    
+    # Fetch the latest .deb URL from GitHub API
+    ANYTYPE_DEB_URL=$(curl -s https://api.github.com/repos/anyproto/anytype-ts/releases/latest | jq -r '.assets[] | select(.name | endswith("_amd64.deb")) | .browser_download_url')
+    
+    curl -L "$ANYTYPE_DEB_URL" -o /tmp/anytype.deb
+    sudo dpkg -i /tmp/anytype.deb
+    sudo apt-get install -f -y  # Fix any missing dependencies
+    rm /tmp/anytype.deb
+else
+    skip "Anytype"
+fi
+
+
+# Apidog (Official .deb from apidog.com)
+if ! command_exists apidog; then
+    log "Installing Apidog..."
+    # Apidog provides a zip containing the .deb
+    curl -L "https://file-assets.apidog.com/download/Apidog-linux-deb-latest.zip" -o /tmp/apidog.zip
+    unzip -o /tmp/apidog.zip -d /tmp/apidog_install
+    
+    # Find the extracted .deb file and install it
+    sudo dpkg -i /tmp/apidog_install/*.deb
+    sudo apt-get install -f -y
+    
+    # Cleanup
+    rm -rf /tmp/apidog.zip /tmp/apidog_install
+else
+    skip "Apidog"
+fi
+
 # Snap Packages
 log "Installing Snap apps..." 
 for snap_pkg in "yazi --classic" "ncspot" "espanso --classic"; do
   sudo snap install $snap_pkg || warn "Failed to install $snap_pkg" 
 done
 
-ok "Zed, Mattermost, snap packages synced" 
+ok "Zed, Mattermost, Anytype, Apidog, and snap packages synced" 
 {{ end -}}
