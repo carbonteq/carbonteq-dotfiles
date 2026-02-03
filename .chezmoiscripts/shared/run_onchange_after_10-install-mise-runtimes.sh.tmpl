@@ -1,19 +1,39 @@
 #!/usr/bin/env bash
 {{ template "scripts_library.sh" . }}
 
+# Define the absolute path to the mise binary
+MISE_BIN="$HOME/.local/share/mise/bin/mise"
+
 if ! command_exists mise; then
-    log "Installing mise..." 
-    curl https://mise.jdx.dev/install.sh | sh 
+    log "Action: Installing mise..." 
+    curl https://mise.jdx.dev/install.sh | sh
+    
+    # 1. Update the current session PATH immediately
+    export PATH="$HOME/.local/share/mise/bin:$PATH"
+    
+    # 2. Permanent setup: Add to .bashrc or .zshrc if not already there
+    SHELL_PROFILE="$([ -f "$HOME/.zshrc" ] && echo "$HOME/.zshrc" || echo "$HOME/.bashrc")"
+    if ! grep -qs "mise activate" "$SHELL_PROFILE"; then
+        log "Action: Adding mise activation to $SHELL_PROFILE"
+        echo 'export PATH="$HOME/.local/share/mise/bin:$PATH"' >> "$SHELL_PROFILE"
+        echo 'eval "$(mise activate bash)"' >> "$SHELL_PROFILE"
+    fi
+    
+    ok "mise installed and environment configured."
 else
-    skip "Mise"
+    skip "mise is already installed."
 fi
 
-export PATH="$HOME/.local/share/mise/bin:$HOME/.local/share/mise/shims:$PATH" 
-eval "$(mise activate bash --shims)" 
+# 3. Ensure the current script session can "see" mise for the next steps
+export PATH="$HOME/.local/share/mise/bin:$PATH"
+eval "$($MISE_BIN activate bash --shims)"
 
-mise use --global node@lts 
-mise use --global python@latest 
-mise use --global pnpm@latest 
-mise use --global bun@latest 
+log "Action: Syncing global runtimes (Node, Python, Pnpm, Bun)..."
 
-ok "Mise runtimes synced" 
+# Using the full path to the binary to guarantee execution
+$MISE_BIN use --global node@lts 
+$MISE_BIN use --global python@latest 
+$MISE_BIN use --global pnpm@latest 
+$MISE_BIN use --global bun@latest 
+
+ok "Mise runtimes synced and path variables configured."
