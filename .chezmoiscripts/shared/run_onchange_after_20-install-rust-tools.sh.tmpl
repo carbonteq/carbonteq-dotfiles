@@ -21,7 +21,7 @@ else
 fi
 
 # Format: "crate-name:binary-name"
-RUST_TOOLS="ripgrep:rg fd-find:fd bat:bat eza:eza zoxide:zoxide xh:xh zellij:zellij gitui:gitui starship:starship du-dust:dust dua-cli:dua hyperfine:hyperfine git-delta:delta ripgrep_all:rga tokei:tokei just:just mask:mask mprocs:mprocs fselect:fselect bacon:bacon cargo-info:cargo-info wiki-tui:wiki-tui rusty-man:rusty-man helix:hx kondo:kondo bob-nvim:bob" 
+RUST_TOOLS="ripgrep:rg fd-find:fd bat:bat eza:eza zoxide:zoxide xh:xh zellij:zellij gitui:gitui starship:starship du-dust:dust dua-cli:dua hyperfine:hyperfine git-delta:delta ripgrep_all:rga tokei:tokei just:just mask:mask mprocs:mprocs fselect:fselect bacon:bacon cargo-info:cargo-info wiki-tui:wiki-tui rusty-man:rusty-man kondo:kondo bob-nvim:bob" 
 
 for entry in $RUST_TOOLS; do
     pkg="${entry%%:*}"
@@ -30,7 +30,7 @@ for entry in $RUST_TOOLS; do
     if ! command_exists "$bin"; then
         log "Installing $pkg..."
 
-        if [[ "$pkg" == "helix" || "$pkg" == "rusty-man" ]]; then
+        if [["$pkg" == "rusty-man" ]]; then
             cargo install "$pkg" --locked --quiet || warn "Failed to install $pkg"
         else
             cargo install "$pkg" --quiet || warn "Failed to install $pkg"
@@ -39,5 +39,26 @@ for entry in $RUST_TOOLS; do
         skip "$pkg"
     fi
 done
+
+# --- Homebrew & evil-helix ---
+# Ensure brew is in the path for this session if it was just installed
+if [ -d "/home/linuxbrew/.linuxbrew/bin" ]; then
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+elif [ -d "$HOME/.linuxbrew/bin" ]; then
+    eval "$($HOME/.linuxbrew/bin/brew shellenv)"
+fi
+
+if command_exists brew; then
+    if ! command_exists hx; then
+        log "Installing evil-helix via Homebrew..."
+        # evil-helix usually provides the 'hx' binary
+        brew install evil-helix && ok "evil-helix installed" || warn "Failed to install evil-helix"
+    else
+        skip "evil-helix (hx)"
+    fi
+else
+    warn "Homebrew not found; skipping evil-helix installation."
+fi
+
 
 ok "Rust (cargo) and expanded CLI toolkit synced"

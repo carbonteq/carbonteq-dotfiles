@@ -5,7 +5,7 @@ log "Installing TUI Tools..."
 
 # Rust-based TUIs
 # Format: "crate-name:binary-name"
-RUST_TUIS="atuin:atuin presenterm:presenterm"
+RUST_TUIS="atuin:atuin"
 
 for entry in $RUST_TUIS; do
     pkg="${entry%%:*}"

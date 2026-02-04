@@ -63,6 +63,33 @@ else
 fi
 
 
+
+# --- Homebrew Installation ---
+if ! command -v brew >/dev/null 2>&1; then
+    log "Installing Homebrew..."
+    
+    # Ensure build-essential and curl are present (Homebrew requirements)
+    # Note: Your REQUIRED_PKGS already covers these, but this is a good safety check.
+    
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    
+    # Set up environment for the current shell session
+    # For Linux, Brew usually installs to /home/linuxbrew/.linuxbrew/
+    test -d ~/.linuxbrew && eval "$(~/.linuxbrew/bin/brew shellenv)"
+    test -d /home/linuxbrew/.linuxbrew && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    
+    ok "Homebrew installed successfully"
+else
+    skip "Homebrew is already installed"
+fi
+
+# Optional: Update Brew and install a few core formulae
+if command -v brew >/dev/null 2>&1; then
+    log "Updating Homebrew formulae..."
+    brew update
+fi
+
+
 # --- VS Code ---
 if ! command_exists code; then
     log "Installing VS Code..."
