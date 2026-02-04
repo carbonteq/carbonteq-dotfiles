@@ -29,7 +29,12 @@ for entry in $RUST_TOOLS; do
     
     if ! command_exists "$bin"; then
         log "Installing $pkg..."
-        cargo install "$pkg" --quiet || warn "Failed to install $pkg" 
+
+        if [[ "$pkg" == "helix" || "$pkg" == "rusty-man" ]]; then
+            cargo install "$pkg" --locked --quiet || warn "Failed to install $pkg"
+        else
+            cargo install "$pkg" --quiet || warn "Failed to install $pkg"
+        fi
     else
         skip "$pkg"
     fi
