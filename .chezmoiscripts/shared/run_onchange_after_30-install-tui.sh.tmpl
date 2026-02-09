@@ -3,7 +3,40 @@
 
 log "Installing TUI Tools..."
 
-# Rust-based TUIs
+# --- Ensure Go is installed ---
+if ! command_exists go; then
+    log "Go not found. Attempting to install Go..."
+    
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        # Check for common package managers
+        if command_exists apt; then
+            sudo apt update && sudo apt install -y golang
+        elif command_exists dnf; then
+            sudo dnf install -y golang
+        elif command_exists pacman; then
+            sudo pacman -S --noconfirm go
+        else
+            error "Unknown Linux distro. Please install Go manually: https://go.dev/doc/install"
+        fi
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        if command_exists brew; then
+            brew install go
+        else
+            error "Homebrew not found. Please install Go manually: https://go.dev/doc/install"
+        fi
+    else
+        error "Unsupported OS for automatic Go installation."
+    fi
+
+    # Verify installation and refresh path if necessary
+    if ! command_exists go; then
+        # Try adding common Go paths to current session
+        export PATH=$PATH:/usr/local/go/bin:$(go env GOPATH)/bin
+        command_exists go || error "Go installation failed or is not in PATH."
+    fi
+fi
+
+# --- Rust-based TUIs ---
 # Format: "crate-name:binary-name"
 RUST_TUIS="atuin:atuin"
 
@@ -18,26 +51,21 @@ for entry in $RUST_TUIS; do
     fi
 done
 
-# Go-based TUI Tools
-# Note: We install 'gum' and 'charm' which provide the TUI functionality
-# you were looking for with bubbletea/lipgloss.
-if command_exists go; then
-    # Define Go tools to install (binary-name:install-path)
-    GO_TOOLS="gum:github.com/charmbracelet/gum charm:github.com/charmbracelet/charm"
+# --- Go-based TUI Tools ---
+# Define Go tools to install (binary-name:install-path)
+GO_TOOLS="gum:github.com/charmbracelet/gum@latest charm:github.com/charmbracelet/charm@latest"
+
+for entry in $GO_TOOLS; do
+    bin="${entry%%:*}"
+    path="${entry##*:}"
     
-    for entry in $GO_TOOLS; do
-        bin="${entry%%:*}"
-        path="${entry##*:}"
-        log "Go_Tool: $entry"
-        if ! command_exists "$bin"; then
-            log "Installing $bin..."
-            go install "$path@latest" || warn "Failed to install $bin"
-        else
-            skip "$bin"
-        fi
-    done
-else
-    warn "Go not found. Skipping Go-based TUI tools."
-fi
+    if ! command_exists "$bin"; then
+        log "Installing $bin..."
+        # Note: 'go install' usually requires the @version suffix
+        go install "$path" || warn "Failed to install $bin"
+    else
+        skip "$bin"
+    fi
+done
 
 ok "TUI tools synced."
