@@ -1,3 +1,5 @@
+{{- if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "linux") }}
+
 #!/usr/bin/env bash
 {{ template "scripts_library.sh" . }}
 
@@ -40,3 +42,6 @@ export PATH="$(dirname "$MISE_BIN"):$PATH"
 "$MISE_BIN" use --global bun@latest 
 
 ok "Mise runtimes synced using $MISE_BIN"
+
+
+{{ end -}}
