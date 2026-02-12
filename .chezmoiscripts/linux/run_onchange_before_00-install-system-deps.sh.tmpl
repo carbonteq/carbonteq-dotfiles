@@ -55,13 +55,17 @@ SANDBOX_CONFIG="/etc/sysctl.d/99-electron-sandbox.conf"
 
 if [ ! -f "$SANDBOX_CONFIG" ]; then
     echo "kernel.unprivileged_userns_clone=1" | sudo tee -a "$SANDBOX_CONFIG" > /dev/null
-    echo "kernel.apparmor_restrict_unprivileged_userns=0" | sudo tee -a "$SANDBOX_CONFIG" > /dev/null
+
+    # Only add AppArmor setting if the proc file exists
+    if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+        echo "kernel.apparmor_restrict_unprivileged_userns=0" | sudo tee -a "$SANDBOX_CONFIG" > /dev/null
+    fi
+
     sudo sysctl -p "$SANDBOX_CONFIG"
     ok "Electron sandbox fix applied via $SANDBOX_CONFIG"
 else
     skip "Electron sandbox fix already present"
 fi
-
 
 
 # --- Homebrew Installation ---
