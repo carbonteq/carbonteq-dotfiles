@@ -31,7 +31,7 @@ for entry in $RUST_TOOLS; do
     if ! command_exists "$bin"; then
         log "Installing $pkg..."
 
-        if [["$pkg" == "rusty-man" ]]; then
+        if [[ "$pkg" == "rusty-man" ]]; then
             cargo install "$pkg" --locked --quiet || warn "Failed to install $pkg"
         else
             cargo install "$pkg" --quiet || warn "Failed to install $pkg"
