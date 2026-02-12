@@ -22,15 +22,21 @@ fi
 # Anytype (Official .deb from GitHub Releases)
 if ! command_exists anytype; then
     log "Installing Anytype..."
-    # Ensure dependencies are met
-    sudo apt-get install -y libsecret-1-dev jq
+    
+    # 1. FIX: Add libxss1 to this list
+    sudo apt-get install -y libsecret-1-dev jq libxss1
     
     # Fetch the latest .deb URL from GitHub API
     ANYTYPE_DEB_URL=$(curl -s https://api.github.com/repos/anyproto/anytype-ts/releases/latest | jq -r '.assets[] | select(.name | endswith("_amd64.deb")) | .browser_download_url')
     
     curl -L "$ANYTYPE_DEB_URL" -o /tmp/anytype.deb
+    
+    # Install the deb
     sudo dpkg -i /tmp/anytype.deb
-    sudo apt-get install -f -y  # Fix any missing dependencies
+    
+    # Fix any potential missing dependencies (good to keep this)
+    sudo apt-get install -f -y 
+    
     rm /tmp/anytype.deb
 else
     skip "Anytype"
