@@ -1,5 +1,4 @@
-{{- if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "linux") }}
-
+{{- if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "linux") -}}
 #!/usr/bin/env bash
 {{ template "scripts_library.sh" . }}
 
@@ -71,5 +70,4 @@ for entry in $GO_TOOLS; do
 done
 
 ok "TUI tools synced."
-
 {{ end -}}

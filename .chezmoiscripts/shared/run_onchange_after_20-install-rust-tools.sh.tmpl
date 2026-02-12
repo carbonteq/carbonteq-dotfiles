@@ -1,5 +1,4 @@
-{{- if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "linux") }}
-
+{{- if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "linux")-}}
 #!/usr/bin/env bash
 {{ template "scripts_library.sh" . }}
 
@@ -64,5 +63,4 @@ fi
 
 
 ok "Rust (cargo) and expanded CLI toolkit synced"
-
 {{ end -}}

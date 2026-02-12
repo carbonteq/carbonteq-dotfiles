@@ -1,8 +1,6 @@
-{{- if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "linux") }}
-
+{{- if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "linux") -}}
 #!/usr/bin/env bash
 {{ template "scripts_library.sh" . }}
-
 # 1. Detect actual mise location
 if [ -f "$HOME/.local/bin/mise" ]; then
     MISE_BIN="$HOME/.local/bin/mise"
@@ -42,6 +40,4 @@ export PATH="$(dirname "$MISE_BIN"):$PATH"
 "$MISE_BIN" use --global bun@latest 
 
 ok "Mise runtimes synced using $MISE_BIN"
-
-
 {{ end -}}
