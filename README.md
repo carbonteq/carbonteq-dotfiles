@@ -24,6 +24,52 @@ These dotfiles automate:
 
 ---
 
+## 🚀 Getting Started
+
+### 1. Install Chezmoi
+
+```bash
+# Linux
+snap install chezmoi --classic
+
+# macOS (via Homebrew)
+brew install chezmoi
+```
+
+### 2. Initialize from this repo
+
+```bash
+# via HTTPS
+chezmoi init https://github.com/carbonteq/carbonteq-dotfiles.git
+
+# via SSH
+chezmoi init git@github.com:carbonteq/carbonteq-dotfiles.git
+```
+
+### 3. Apply your setup
+
+```bash
+# Pull latest changes and apply automatically
+chezmoi update
+
+# Only apply existing local dotfiles to your machine
+chezmoi apply
+```
+
+Chezmoi will detect your OS and execute the relevant `.chezmoiscripts`.
+
+---
+
+### 👤 Git Identity Setup (Automated)
+
+During the initial setup, a script will automatically prompt you for your **Full Name** and **Work Email**. This creates your local identity file: `~/.gitconfig.local`.
+
+
+**Need to change your name/email later?**
+Simply edit the local file directly: `nano ~/.gitconfig.local`
+
+---
+
 ### 🔄 How Dotfiles Work
 
 ```
@@ -72,88 +118,6 @@ These dotfiles automate:
 * `chezmoi update` → Pull the latest Carbonteq dotfiles from the remote repo **and automatically apply them**.
 
 ---
-
-## 🚀 Getting Started
-
-### 1. Install Chezmoi
-
-```bash
-# Linux
-snap install chezmoi --classic
-
-# macOS (via Homebrew)
-brew install chezmoi
-```
-
-### 2. Initialize from this repo
-
-```bash
-# via HTTPS
-chezmoi init https://github.com/carbonteq/carbonteq-dotfiles.git
-
-# via SSH
-chezmoi init git@github.com:carbonteq/carbonteq-dotfiles.git
-```
-
-### 3. Apply your setup
-
-```bash
-# Pull latest changes and apply automatically
-chezmoi update
-
-# Only apply existing local dotfiles to your machine
-chezmoi apply
-```
-
-Chezmoi will detect your OS and execute the relevant `.chezmoiscripts`.
-
----
-
-### ⚠️ Important: Personal Dotfiles (Required Setup)
-
-This repository ships with **organization-level defaults** for Git, Zsh, and global ignores.
-Some files are **intentionally placeholders** and **must be customized** on your machine.
-
-### 🔑 `~/.gitconfig.local` (Required)
-
-Your **Git identity must live in `~/.gitconfig.local`**.
-This file is **not meant to be committed** and is unique per developer.
-
-After initializing Chezmoi, open the file:
-
-```bash
-chezmoi edit ~/.gitconfig.local
-```
-
-Replace the placeholders:
-
-```ini
-[user]
-    name = ReplaceYourName
-    email = ReplaceYourEmail
-```
-
-✅ This file is automatically included by the main `.gitconfig`:
-
----
-
-### 🔄 After Updating Your Identity
-
-Once you’ve updated `~/.gitconfig.local`, apply the configuration:
-
-```bash
-chezmoi apply
-```
-
-Or, if you want to pull the latest updates and apply everything:
-
-```bash
-chezmoi update
-```
-
----
-
-
 
 ## 🧭 Common Chezmoi Commands
 
