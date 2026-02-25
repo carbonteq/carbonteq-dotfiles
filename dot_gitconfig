@@ -8,11 +8,6 @@
     autocrlf = input
     excludesfile = ~/.gitignore_global
     ignorecase = false
-
-[pull]
-    # Ensures clean history; highly recommended for teams
-    rebase = true
-
 [push]
     # Pushes the current branch to its upstream
     default = current
