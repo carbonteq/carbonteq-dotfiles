@@ -162,45 +162,10 @@ Simply edit the local file directly: `nano ~/.gitconfig.local`
 
 ---
 
-## 📁 Repository Structure
+## 📂 Repository Structure
 
-```bash
-~/.local/share/chezmoi
-├── .chezmoiscripts
-│   ├── darwin
-│   │   ├── run_onchange_before_00-install-brew-bundles.sh.tmpl
-│   │   └── run_onchange_after_10-install-shell.sh.tmpl
-│   ├── linux
-│   │   ├── run_onchange_before_00-install-system-deps.sh.tmpl
-│   │   ├── run_onchange_after_10-install-docker.sh.tmpl
-│   │   ├── run_onchange_after_20-install-browsers.sh.tmpl
-│   │   ├── run_onchange_after_30-install-dev-gui.sh.tmpl
-│   │   ├── run_onchange_after_40-install-cloud-tools.sh.tmpl
-│   │   └── run_onchange_after_50-install-shells.sh.tmpl
-│   └── shared
-│       ├── run_onchange_after_10-install-mise-runtimes.sh.tmpl
-│       ├── run_onchange_after_20-install-rust-tools.sh.tmpl
-│       └── run_onchange_after_30-install-tui.sh.tmpl
-├── .chezmoitemplates
-│   └── scripts_library.sh
-├── dot_gitconfig
-├── dot_gitconfig.local
-├── dot_gitignore_global
-├── dot_zshrc
-```
-
-* The script are categorized by OS, and chezmoi run it in alphabetical order. 
-* `run_onchange_before` and `run_onchange_after` are reserved keywords in chezmoi and are explained below. The numerical numbering after it ( `00, 10, 20, 30...`) defines the order of execution.
-   
-   * `run_onchange` scripts run only first time and when it detects any new changes.
-   * `before` scripts run before dotfiles are copied.
-   * `after` scripts run after dotfiles are applied.
-
----
-
-Absolutely — you can make the main README much **shorter and cleaner** by only giving a brief intro and pointing users to the `docs` folder. Here’s a concise version of that last section:
-
----
+The repo structure is organized for cross-platform setup and automation.  
+For a detailed overview, see [RepositoryStructure.md](./docs/RepositoryStructure.md).
 
 ## 📄 Dotfiles & Aliases
 
