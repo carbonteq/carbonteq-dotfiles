@@ -1,0 +1,25 @@
+{{ if ne .chezmoi.os "windows" -}}
+#!/bin/bash
+
+# Path to the local git config
+GITCONFIG_LOCAL="$HOME/.gitconfig.local"
+
+# Only run if .gitconfig.local doesn't already exist
+if [ ! -f "$GITCONFIG_LOCAL" ]; then
+    echo "--- Git Identity Setup (Linux/macOS) ---"
+    
+    # Prompt for input
+    read -p "Enter your Full Name: " git_name
+    read -p "Enter your Work Email: " git_email
+
+    # Create the file
+    cat <<EOF > "$GITCONFIG_LOCAL"
+[user]
+    name = $git_name
+    email = $git_email
+EOF
+    echo "✅ Identity saved to $GITCONFIG_LOCAL"
+else
+    echo "ℹ️  .gitconfig.local already exists, skipping setup."
+fi
+{{ end -}}

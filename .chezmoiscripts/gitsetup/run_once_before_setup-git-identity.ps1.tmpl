@@ -1,0 +1,25 @@
+{{ if eq .chezmoi.os "windows" -}}
+$gitConfigLocal = "$HOME\.gitconfig.local"
+
+# Only run if .gitconfig.local doesn't already exist
+if (-not (Test-Path $gitConfigLocal)) {
+    Write-Host "--- Git Identity Setup (Windows) ---" -ForegroundColor Cyan
+    
+    # Prompt for input
+    $gitName = Read-Host "Enter your Full Name"
+    $gitEmail = Read-Host "Enter your Work Email"
+
+    # Create the content
+    $content = @"
+[user]
+    name = $gitName
+    email = $gitEmail
+"@
+
+    # Save the file
+    $content | Out-File -FilePath $gitConfigLocal -Encoding utf8
+    Write-Host "✅ Identity saved to $gitConfigLocal" -ForegroundColor Green
+} else {
+    Write-Host "ℹ️  .gitconfig.local already exists, skipping setup."
+}
+{{ end -}}
